@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Benchmark · Cripta Heurística</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2306050b'/><text x='16' y='23' font-family='monospace' font-size='22' font-weight='bold' text-anchor='middle' fill='%23ffd166'>%25</text></svg>"
+    />
+  </head>
+  <body>
+    <div class="bench">
+      <header class="bench-header">
+        <a class="back" href="./index.html">← voltar ao jogo</a>
+        <h1>Benchmark <span>Gulosa × A*</span></h1>
+        <p class="muted">
+          Cada cenário gera dungeons com seeds fixas, sorteia pares início/objetivo e roda todos os algoritmos nos
+          mesmos pares. O custo ótimo de referência vem do Dijkstra (A* com h = 0).
+        </p>
+      </header>
+
+      <section class="controls card">
+        <fieldset id="scenario-picks" class="picks">
+          <legend>Cenários</legend>
+        </fieldset>
+        <label>
+          <span>Seeds por variante</span>
+          <input id="seeds" type="number" min="1" max="200" value="10" />
+        </label>
+        <label>
+          <span>Pares por seed</span>
+          <input id="pairs" type="number" min="1" max="20" value="5" />
+        </label>
+        <button id="run" class="btn primary" type="button">Rodar benchmark</button>
+        <div class="progress" aria-live="polite">
+          <div class="progress-bar"><div id="progress-fill"></div></div>
+          <span id="progress-text" class="mono muted">pronto</span>
+        </div>
+      </section>
+
+      <div id="results"></div>
+    </div>
+    <script type="module" src="/src/bench/page.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cripta Heurística</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2306050b'/><text x='16' y='23' font-family='monospace' font-size='22' font-weight='bold' text-anchor='middle' fill='%2362f3ff'>@</text></svg>"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <main id="stage">
+        <canvas id="game"></canvas>
+        <div id="tooltip" class="tooltip" hidden></div>
+        <div id="banner" class="banner"></div>
+        <div class="crt" aria-hidden="true"></div>
+      </main>
+
+      <aside id="panel">
+        <header class="brand">
+          <h1>Cripta <span>Heurística</span></h1>
+          <p id="run-info" class="muted"></p>
+        </header>
+
+        <section class="card">
+          <div class="hp">
+            <span class="hp-label">PV</span>
+            <div class="bar"><div id="hp-fill"></div></div>
+            <span id="hp-text" class="mono"></span>
+          </div>
+          <ul class="legend">
+            <li><b class="g-player" data-icon="player">@</b> você</li>
+            <li><b class="g-zombie" data-icon="zombie">z</b> Zumbi · <em>Gulosa</em></li>
+            <li><b class="g-hunter" data-icon="hunter">H</b> Caçador · <em>A*</em></li>
+            <li><b class="g-mud" data-icon="mud">~</b> lama · custo 3</li>
+            <li><b class="g-stairs" data-icon="stairs">&gt;</b> escada</li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Mentes dos monstros</h2>
+          <ul id="minds" class="minds"></ul>
+        </section>
+
+        <section id="debug-card" class="card debug" hidden>
+          <h2>Modo debug <kbd>M</kbd></h2>
+          <label class="row">
+            <span>Heurística <kbd>1–4</kbd></span>
+            <select id="heuristic"></select>
+          </label>
+          <div id="focus-info" class="focus-info"></div>
+          <div id="replay" class="replay" hidden>
+            <div class="replay-buttons">
+              <button id="replay-toggle" type="button" title="Pausar/continuar (P)">⏸</button>
+              <button id="replay-restart" type="button" title="Reiniciar replay (R)">⟲</button>
+              <button id="replay-close" type="button" title="Fechar replay (Esc)">✕</button>
+              <span id="replay-progress" class="mono"></span>
+            </div>
+            <label class="row speed">
+              <span>Velocidade</span>
+              <input id="replay-speed" type="range" min="5" max="400" step="5" value="40" />
+              <span id="replay-speed-text" class="mono"></span>
+            </label>
+          </div>
+          <div id="compare-info" class="compare-info"></div>
+          <label class="row check">
+            <input id="god" type="checkbox" />
+            <span>Invulnerável <kbd>I</kbd></span>
+          </label>
+        </section>
+
+        <section class="card log-card">
+          <h2>Registro</h2>
+          <ol id="log" class="log"></ol>
+        </section>
+
+        <footer class="help">
+          <span><kbd>WASD</kbd>/<kbd>setas</kbd> mover</span>
+          <span><kbd>Espaço</kbd> esperar</span>
+          <span><kbd>clique</kbd> andar até</span>
+          <span><kbd>M</kbd> debug</span>
+          <span><kbd>C</kbd> comparar</span>
+          <span><kbd>R</kbd> replay</span>
+          <span><kbd>V</kbd> visual</span>
+          <span><kbd>Esc</kbd> menu</span>
+        </footer>
+      </aside>
+    </div>
+
+    <div id="menu" class="overlay">
+      <div class="menu-box">
+        <p class="kicker">Sistemas Inteligentes · IFPE Garanhuns</p>
+        <h1 class="title">Cripta<br />Heurística</h1>
+        <p class="tagline">
+          Um roguelike sobre <strong class="c-greedy">Busca Gulosa</strong> ×
+          <strong class="c-astar">A*</strong>. Zumbis <b class="g-zombie">z</b> perseguem você pelo caminho que
+          <em>parece</em> mais curto. Caçadores <b class="g-hunter">H</b>, pelo caminho que <em>é</em> mais curto.
+        </p>
+        <div class="menu-actions">
+          <button id="btn-run" class="btn primary" type="button">Nova partida</button>
+          <button id="btn-demo" class="btn" type="button">Mapa de demonstração</button>
+          <a class="btn ghost" href="./bench.html">Benchmark ↗</a>
+        </div>
+        <div class="menu-options">
+          <button id="btn-theme" class="btn ghost small" type="button">Visual: pixel art</button>
+        </div>
+        <label class="seed">
+          <span>Seed (opcional)</span>
+          <input id="seed-input" type="text" inputmode="numeric" placeholder="aleatória" autocomplete="off" />
+        </label>
+        <p class="credits">
+          Dynylson Júnior &amp; Gabriel de Carvalho · Profa. Alessandra<br />
+          Sprites: Tiny Dungeon, de <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0)
+        </p>
+      </div>
+    </div>
+
+    <div id="end" class="overlay" hidden>
+      <div class="menu-box">
+        <h1 id="end-title" class="title small"></h1>
+        <dl id="end-stats" class="end-stats"></dl>
+        <div class="menu-actions">
+          <button id="btn-same" class="btn primary" type="button">Mesma seed</button>
+          <button id="btn-new" class="btn" type="button">Nova seed</button>
+          <button id="btn-menu" class="btn ghost" type="button">Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/game/main.ts"></script>
+  </body>
+</html>

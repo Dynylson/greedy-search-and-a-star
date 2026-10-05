@@ -1,0 +1,6 @@
+node_modules
+dist
+*.log
+scratch
+# gerado por `npm run report` (intermediário do PDF/DOCX)
+report/relatorio.html

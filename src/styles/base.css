@@ -1,0 +1,108 @@
+:root {
+  --bg: #06050b;
+  --panel: #0b0915;
+  --card: #110e1e;
+  --line: #231d3d;
+  --text: #ddd8ff;
+  --muted: #8a84b0;
+  --cyan: #62f3ff;
+  --green: #9dff6e;
+  --pink: #ff4f86;
+  --gold: #ffd166;
+  --mud: #c08a3e;
+  --violet: #7a5cff;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  --pixel: 'Press Start 2P', var(--mono);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+kbd {
+  font-family: var(--mono);
+  font-size: 0.78em;
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #171329;
+  color: var(--text);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.c-greedy {
+  color: var(--gold);
+}
+
+.c-astar {
+  color: var(--cyan);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  padding: 0.7em 1.2em;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #151126;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+}
+
+.btn:hover,
+.btn:focus-visible {
+  border-color: var(--cyan);
+  box-shadow: 0 0 18px rgba(98, 243, 255, 0.25);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.btn.primary {
+  border-color: var(--cyan);
+  background: linear-gradient(180deg, rgba(98, 243, 255, 0.18), rgba(98, 243, 255, 0.06));
+  color: #eaffff;
+}
+
+.btn.ghost {
+  background: transparent;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: progress;
+  transform: none;
+}
