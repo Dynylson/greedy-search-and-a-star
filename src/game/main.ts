@@ -384,8 +384,6 @@ window.addEventListener('keydown', (e) => {
       break;
     case '1':
     case '2':
-    case '3':
-    case '4':
       setHeuristic(HEURISTIC_IDS[Number(e.key) - 1]);
       break;
     case 'Escape':

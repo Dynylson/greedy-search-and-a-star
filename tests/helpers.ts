@@ -27,6 +27,33 @@ export function* randomQueries(count: number, seed = 1) {
   }
 }
 
+/**
+ * Custo mínimo por força bruta (Bellman-Ford): relaxa todas as arestas até nada mudar.
+ * Bem mais lento que o A*, mas simples o bastante para servir de gabarito nos testes.
+ */
+export function bruteForceCost(grid: Grid, start: number, goal: number): number {
+  if (!grid.isPassable(start) || !grid.isPassable(goal)) return Infinity;
+  const dist = new Float64Array(grid.size).fill(Infinity);
+  dist[start] = 0;
+  const neighbors = [0, 0, 0, 0];
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (let i = 0; i < grid.size; i++) {
+      if (dist[i] === Infinity) continue;
+      const count = grid.neighbors(i, neighbors);
+      for (let k = 0; k < count; k++) {
+        const next = neighbors[k];
+        const d = dist[i] + grid.costOf(next);
+        if (d < dist[next]) {
+          dist[next] = d;
+          changed = true;
+        }
+      }
+    }
+  }
+  return dist[goal];
+}
+
 /** Confere se o caminho é válido e devolve seu custo somando as ações. */
 export function pathCost(grid: Grid, path: number[]): number {
   let cost = 0;

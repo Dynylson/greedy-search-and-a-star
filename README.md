@@ -18,7 +18,7 @@ Requisitos: Node.js 20+. Para gerar o PDF do relatório, Google Chrome ou Micros
 ```bash
 npm install
 npm run dev        # jogo em http://localhost:5173 (benchmark em /bench.html)
-npm test           # 15 testes automatizados (Vitest)
+npm test           # 14 testes automatizados (Vitest)
 npm run bench      # benchmark completo (100 seeds × 5 pares) → results/
 npm run report     # relatório → report/Relatorio-Cripta-Heuristica.pdf
 npm run build      # versão estática em dist/
@@ -35,7 +35,7 @@ npm run build      # versão estática em dist/
 | `C` | comparar Gulosa × A\* do herói até o cursor |
 | `R` / `Shift+R` | replay passo a passo da busca (A\* / Gulosa na comparação) |
 | `P` | pausar/continuar o replay |
-| `1`–`4` | heurística: Manhattan, Euclidiana, Zero (Dijkstra), 2×Manhattan |
+| `1`–`2` | heurística: Manhattan, Euclidiana |
 | `I` | invulnerável (útil na apresentação) |
 | `V` | alterna o visual: pixel art ↔ glifos neon |
 | `Esc` | fecha replay/comparação, depois abre o menu |
@@ -45,14 +45,14 @@ npm run build      # versão estática em dist/
 ```
 src/core/         lógica pura, sem interface
   grid.ts         estados, ações e custos (chão 1, lama 3)
-  heuristics.ts   Manhattan, Euclidiana, Zero, 2×Manhattan
+  heuristics.ts   Manhattan e Euclidiana
   priorityQueue.ts heap binário (lista aberta) com desempate determinístico
-  search.ts       ★ Busca Gulosa e A* (mesma função, muda só f(n))
+  search.ts       ★ Busca Gulosa e A* (uma função cada; mudam f(n) e o relaxamento)
   dungeon.ts      gerador procedural: salas + árvore geradora mínima + ciclos + lama
   demoMap.ts      mapa desenhado à mão para a apresentação
 src/game/         jogo: regras por turnos, renderização, modo debug, painel
 src/bench/        cenários, runner (Node e navegador), gráficos
-tests/            testes (A* = Dijkstra em 500 grids aleatórios, etc.)
+tests/            testes (A* = busca exaustiva em 500 grids aleatórios, etc.)
 report/           modelo do relatório, figuras e PDF gerado
 results/          saída do benchmark (JSON + CSV)
 docs/             guia de estudo, roteiro da apresentação e prompt para os slides

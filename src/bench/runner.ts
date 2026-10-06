@@ -65,7 +65,9 @@ export function runTask(task: Task, options: BenchOptions, clock: Clock): Sample
 
   const samples: Sample[] = [];
   for (const [start, goal] of pairs) {
-    const optimalCost = aStar(grid, start, goal, { heuristic: HEURISTICS.zero.fn }).cost;
+    // Custo ótimo de referência: A* com Manhattan, que é admissível e por isso sempre acha
+    // o caminho mais barato (os testes conferem isso contra uma busca exaustiva).
+    const optimalCost = aStar(grid, start, goal, { heuristic: HEURISTICS.manhattan.fn }).cost;
     for (const algoId of scenario.algos) {
       const algo = ALGOS[algoId];
       const options_ = { heuristic: HEURISTICS[algo.heuristic].fn };

@@ -5,15 +5,12 @@ import { MinHeap } from './priorityQueue';
 /**
  * Busca Gulosa (Greedy Best-First Search) e A*.
  *
- * Os dois são o MESMO algoritmo de busca pela melhor escolha; a única diferença
- * é a função de avaliação f(n) usada para ordenar a lista aberta:
+ * Os dois seguem o mesmo esquema — tirar da lista aberta o nó de menor f(n),
+ * expandi-lo e colocar os vizinhos na lista — e diferem em DUAS escolhas:
  *
- *   A*      → f(n) = g(n) + h(n)   (custo real até aqui + estimativa até o fim)
- *   Gulosa  → f(n) = h(n)          (só a estimativa: "vá para o que parece mais perto")
- *
- * Além disso, o A* RELAXA arestas: se achar um caminho mais barato para um nó
- * que já está na lista aberta, atualiza g(n) e o pai. A Gulosa fica com o
- * primeiro caminho que descobriu, porque ignora g(n) na hora de decidir.
+ *             f(n) usada na lista aberta          reencontrou um nó por um caminho mais barato?
+ *   Gulosa →  h(n)          (só a estimativa)     ignora: fica com o primeiro caminho
+ *   A*     →  g(n) + h(n)   (gasto + estimativa)  atualiza g(n) e o pai (relaxamento)
  */
 
 export type AlgorithmId = 'astar' | 'greedy';
@@ -57,17 +54,53 @@ export interface SearchOptions {
   trace?: boolean;
 }
 
-type PriorityFn = (g: number, h: number) => number;
+/** Busca Gulosa: f(n) = h(n). Vai sempre para o nó que PARECE mais perto do objetivo. */
+export function greedyBestFirst(grid: Grid, start: number, goal: number, options: SearchOptions): SearchResult {
+  const s = new SearchContext(grid, options);
+  if (!grid.isPassable(start) || !grid.isPassable(goal)) return s.notFound();
+  const h = heuristicTo(grid, goal, options.heuristic);
 
-const astarPriority: PriorityFn = (g, h) => g + h;
-const greedyPriority: PriorityFn = (_g, h) => h;
+  s.open(start, 0, -1, h(start), h(start));
+  while (s.openCount > 0) {
+    const current = s.expandBest();
+    if (current === goal) return s.found(goal);
 
-export function aStar(grid: Grid, start: number, goal: number, options: SearchOptions): SearchResult {
-  return bestFirstSearch(grid, start, goal, options, astarPriority, true);
+    const count = grid.neighbors(current, s.neighbors);
+    for (let k = 0; k < count; k++) {
+      const next = s.neighbors[k];
+      // Nó já descoberto (aberto ou fechado) é ignorado: a Gulosa fica com o
+      // primeiro caminho que achou, porque o custo gasto não entra na decisão.
+      if (s.g[next] !== Infinity) continue;
+      const hNext = h(next);
+      s.open(next, s.g[current] + grid.costOf(next), current, hNext, hNext);
+    }
+  }
+  return s.notFound();
 }
 
-export function greedyBestFirst(grid: Grid, start: number, goal: number, options: SearchOptions): SearchResult {
-  return bestFirstSearch(grid, start, goal, options, greedyPriority, false);
+/** A*: f(n) = g(n) + h(n). Com h admissível, o primeiro caminho até o objetivo é o de menor custo. */
+export function aStar(grid: Grid, start: number, goal: number, options: SearchOptions): SearchResult {
+  const s = new SearchContext(grid, options);
+  if (!grid.isPassable(start) || !grid.isPassable(goal)) return s.notFound();
+  const h = heuristicTo(grid, goal, options.heuristic);
+
+  s.open(start, 0, -1, h(start), h(start));
+  while (s.openCount > 0) {
+    const current = s.expandBest();
+    if (current === goal) return s.found(goal);
+
+    const count = grid.neighbors(current, s.neighbors);
+    for (let k = 0; k < count; k++) {
+      const next = s.neighbors[k];
+      if (s.closed[next]) continue;
+      const newG = s.g[current] + grid.costOf(next);
+      // Relaxamento: só (re)coloca na lista aberta se achou um caminho MAIS BARATO até `next`.
+      if (newG >= s.g[next]) continue;
+      const hNext = h(next);
+      s.open(next, newG, current, newG + hNext, hNext);
+    }
+  }
+  return s.notFound();
 }
 
 export function search(
@@ -80,93 +113,87 @@ export function search(
   return algorithm === 'astar' ? aStar(grid, start, goal, options) : greedyBestFirst(grid, start, goal, options);
 }
 
-function bestFirstSearch(
-  grid: Grid,
-  start: number,
-  goal: number,
-  options: SearchOptions,
-  priority: PriorityFn,
-  relaxOpenNodes: boolean,
-): SearchResult {
-  const size = grid.size;
+/** h(n) até o objetivo, a partir do índice linear da célula. */
+function heuristicTo(grid: Grid, goal: number, heuristic: HeuristicFn): (i: number) => number {
   const width = grid.width;
   const goalX = goal % width;
   const goalY = (goal / width) | 0;
-  const heuristic = options.heuristic;
-  const h = (i: number) => heuristic(i % width, (i / width) | 0, goalX, goalY);
+  return (i) => heuristic(i % width, (i / width) | 0, goalX, goalY);
+}
 
-  const g = new Float64Array(size).fill(Infinity);
-  const parent = new Int32Array(size).fill(-1);
-  const closed = new Uint8Array(size);
-  const trace: SearchTrace | undefined = options.trace
-    ? {
+/**
+ * Estruturas comuns às duas buscas: lista aberta, lista fechada, g(n), pai de cada nó,
+ * as métricas do benchmark e o registro do passo a passo. Cada algoritmo acima só
+ * decide a prioridade de cada nó e o que fazer ao reencontrá-lo.
+ */
+class SearchContext {
+  /** Custo do melhor caminho conhecido até cada nó (Infinity = ainda não descoberto). */
+  readonly g: Float64Array;
+  /** De qual nó viemos (para remontar o caminho no fim). */
+  readonly parent: Int32Array;
+  /** Lista fechada: nós já expandidos. */
+  readonly closed: Uint8Array;
+  /** Buffer reaproveitado por `grid.neighbors` (evita alocar dentro do laço). */
+  readonly neighbors = [0, 0, 0, 0];
+  /** Nós distintos na lista aberta. */
+  openCount = 0;
+
+  private readonly heap = new MinHeap();
+  private readonly trace?: SearchTrace;
+  private expanded = 0;
+  private maxOpen = 0;
+
+  constructor(grid: Grid, options: SearchOptions) {
+    const size = grid.size;
+    this.g = new Float64Array(size).fill(Infinity);
+    this.parent = new Int32Array(size).fill(-1);
+    this.closed = new Uint8Array(size);
+    if (options.trace) {
+      this.trace = {
         order: [],
         expandedAt: new Int32Array(size).fill(NEVER),
         discoveredAt: new Int32Array(size).fill(NEVER),
-        g,
-      }
-    : undefined;
-
-  if (!grid.isPassable(start) || !grid.isPassable(goal)) {
-    return { found: false, path: [], cost: Infinity, expanded: 0, maxOpen: 0, trace };
-  }
-
-  const open = new MinHeap();
-  const hStart = h(start);
-  g[start] = 0;
-  open.push(start, priority(0, hStart), hStart);
-  if (trace) trace.discoveredAt[start] = -1;
-
-  let openCount = 1; // nós distintos na lista aberta
-  let maxOpen = 1;
-  let expanded = 0;
-  const neighbors = [0, 0, 0, 0];
-
-  while (open.size > 0) {
-    const current = open.pop();
-    // O heap pode conter entradas antigas de um nó que já teve g melhorado
-    // e foi expandido ("remoção preguiçosa"); essas são simplesmente ignoradas.
-    if (closed[current]) continue;
-    closed[current] = 1;
-    openCount--;
-
-    if (trace) {
-      trace.expandedAt[current] = expanded;
-      trace.order.push(current);
-    }
-    const step = expanded++;
-
-    if (current === goal) {
-      return { found: true, path: buildPath(parent, goal), cost: g[goal], expanded, maxOpen, trace };
-    }
-
-    const count = grid.neighbors(current, neighbors);
-    for (let k = 0; k < count; k++) {
-      const next = neighbors[k];
-      if (closed[next]) continue;
-
-      const tentativeG = g[current] + grid.costOf(next);
-      const discovered = g[next] !== Infinity;
-      if (discovered && (!relaxOpenNodes || tentativeG >= g[next])) continue;
-
-      g[next] = tentativeG;
-      parent[next] = current;
-      const hNext = h(next);
-      open.push(next, priority(tentativeG, hNext), hNext);
-
-      if (!discovered) {
-        openCount++;
-        if (openCount > maxOpen) maxOpen = openCount;
-        if (trace) trace.discoveredAt[next] = step;
-      }
+        g: this.g,
+      };
     }
   }
 
-  return { found: false, path: [], cost: Infinity, expanded, maxOpen, trace };
-}
+  /** Coloca `node` na lista aberta com custo `g`, vindo de `from` (-1 = nó inicial). */
+  open(node: number, g: number, from: number, priority: number, h: number): void {
+    const isNew = this.g[node] === Infinity;
+    this.g[node] = g;
+    this.parent[node] = from;
+    this.heap.push(node, priority, h);
+    if (!isNew) return;
+    this.openCount++;
+    if (this.openCount > this.maxOpen) this.maxOpen = this.openCount;
+    if (this.trace) this.trace.discoveredAt[node] = from === -1 ? -1 : this.expanded - 1;
+  }
 
-function buildPath(parent: Int32Array, goal: number): number[] {
-  const path: number[] = [];
-  for (let node = goal; node !== -1; node = parent[node]) path.push(node);
-  return path.reverse();
+  /** Tira da lista aberta o nó de menor prioridade e o move para a lista fechada. */
+  expandBest(): number {
+    let node = this.heap.pop();
+    // O heap pode conter entradas antigas de um nó que já teve g melhorado e foi
+    // expandido ("remoção preguiçosa"); essas são simplesmente ignoradas.
+    while (this.closed[node]) node = this.heap.pop();
+    this.closed[node] = 1;
+    this.openCount--;
+    if (this.trace) {
+      this.trace.expandedAt[node] = this.expanded;
+      this.trace.order.push(node);
+    }
+    this.expanded++;
+    return node;
+  }
+
+  found(goal: number): SearchResult {
+    const path: number[] = [];
+    for (let node = goal; node !== -1; node = this.parent[node]) path.push(node);
+    path.reverse();
+    return { found: true, path, cost: this.g[goal], expanded: this.expanded, maxOpen: this.maxOpen, trace: this.trace };
+  }
+
+  notFound(): SearchResult {
+    return { found: false, path: [], cost: Infinity, expanded: this.expanded, maxOpen: this.maxOpen, trace: this.trace };
+  }
 }

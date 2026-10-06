@@ -292,9 +292,7 @@
       <i>h</i>, em que <i>g</i>(<i>n</i>) é o custo já percorrido e <i>h</i>(<i>n</i>) uma estimativa do custo restante.
       Se <i>h</i> nunca superestima (é <i>admissível</i>), o A* encontra o caminho de custo mínimo; se, além disso, é
       <i>consistente</i>, nenhum nó precisa ser reaberto. A Busca Gulosa usa apenas <i>f</i> = <i>h</i>: tende a expandir
-      menos nós, mas não garante otimalidade. Com <i>h</i> = 0, o A* se reduz ao algoritmo de Dijkstra (1959), e
-      multiplicar <i>h</i> por um peso <i>w</i> &gt; 1 gera o A* ponderado (POHL, 1970), cujo custo é no máximo
-      <i>w</i> vezes o ótimo. Grids 2D são o banco de testes padrão para comparar esses algoritmos (STURTEVANT, 2012), e o
+      menos nós, mas não garante otimalidade. Grids 2D são o banco de testes padrão para comparar esses algoritmos (STURTEVANT, 2012), e o
       material de Patel (2014) foi a principal referência técnica sobre heurísticas em grids e critérios de desempate.
     </p>
 
@@ -355,20 +353,6 @@
           <td>sim</td>
           <td>Menos informada; mostra o efeito da qualidade de h</td>
         </tr>
-        <tr>
-          <td>Zero</td>
-          <td>0</td>
-          <td>sim</td>
-          <td>sim</td>
-          <td>A* vira Dijkstra; referência de custo ótimo</td>
-        </tr>
-        <tr>
-          <td>2×Manhattan</td>
-          <td>2(|Δx| + |Δy|)</td>
-          <td>não</td>
-          <td>não</td>
-          <td>A* ponderado (w = 2): custo ≤ 2 × ótimo</td>
-        </tr>
       </tbody>
     </table>
     <p>
@@ -378,9 +362,9 @@
 
     <h3>2.3 Busca Gulosa × A*</h3>
     <p>
-      No código, os dois algoritmos são <b>a mesma função</b> (<code>bestFirstSearch</code> em
-      <code>src/core/search.ts</code>), parametrizada por duas escolhas: a prioridade usada na lista aberta e se nós já
-      abertos podem ter <i>g</i> melhorado (relaxamento):
+      Os dois algoritmos seguem <b>o mesmo esquema</b> de busca pela melhor escolha e diferem em duas escolhas: a
+      prioridade usada na lista aberta e se nós já abertos podem ter <i>g</i> melhorado (relaxamento). No código, cada
+      um é uma função própria em <code>src/core/search.ts</code> (<code>greedyBestFirst</code> e <code>aStar</code>):
     </p>
     <pre>
 função BUSCA_PELA_MELHOR_ESCOLHA(grid, início, objetivo, h, f, relaxar):
@@ -479,7 +463,7 @@ Gulosa : f = h,      relaxar = falso      (fica com o primeiro caminho que desco
         </tr>
         <tr>
           <td><code>tests</code></td>
-          <td>15 testes automatizados (descritos abaixo).</td>
+          <td>14 testes automatizados (descritos abaixo).</td>
         </tr>
       </tbody>
     </table>
@@ -491,9 +475,10 @@ Gulosa : f = h,      relaxar = falso      (fica com o primeiro caminho que desco
     </p>
     <p>
       A <b>correção</b> é verificada com testes de propriedade: em 500 grids aleatórios com paredes e lama, o A* com
-      Manhattan e com Euclidiana encontra <b>exatamente</b> o mesmo custo que o Dijkstra; o A* ponderado nunca passa de 2×
-      o ótimo; a Gulosa sempre encontra caminho quando ele existe, nunca abaixo do ótimo; todo caminho devolvido é válido
-      e tem o custo declarado. Também são testados casos de borda (início = objetivo, objetivo isolado), o heap, a
+      Manhattan e com Euclidiana encontra <b>exatamente</b> o mesmo custo que uma busca exaustiva (que relaxa todas as
+      arestas até nada mudar); a Gulosa sempre encontra caminho quando ele existe, nunca abaixo do ótimo; todo caminho
+      devolvido é válido e tem o custo declarado; e, no total de 300 consultas, a Manhattan expande menos nós que a
+      Euclidiana. Também são testados casos de borda (início = objetivo, objetivo isolado), o heap, a
       conectividade e o determinismo do gerador, e o mapa de demonstração.
     </p>
     <figure>
@@ -523,8 +508,9 @@ Gulosa : f = h,      relaxar = falso      (fica com o primeiro caminho que desco
     <p>
       Cada configuração (cenário × variante × algoritmo) foi avaliada em <b>{{QUERIES}} consultas</b>:
       {{SEEDS}} dungeons com <i>seeds</i> fixas × {{PAIRS}} pares início/objetivo sorteados (distância de Manhattan ≥
-      (<i>L</i> + <i>A</i>)/4). Todos os algoritmos rodam sobre os <b>mesmos</b> pares, e o custo ótimo de referência é
-      o do Dijkstra. Como uma busca leva microssegundos, cada uma é repetida até somar pelo menos 1 ms e o tempo
+      (<i>L</i> + <i>A</i>)/4). Todos os algoritmos rodam sobre os <b>mesmos</b> pares. O custo ótimo de referência é o
+      do A* com Manhattan: como a heurística é admissível, ele sempre encontra o caminho de custo mínimo (seção 2.2), o
+      que os testes conferem contra uma busca exaustiva; por isso a razão do A* com Manhattan é 1,0 por construção. Como uma busca leva microssegundos, cada uma é repetida até somar pelo menos 1 ms e o tempo
       registrado é a média das repetições, após uma fase de aquecimento do compilador JIT. Métricas: tempo (média e
       percentil 95), nós expandidos, tamanho máximo da lista aberta (memória), custo do caminho, razão de
       subotimalidade (custo encontrado ÷ custo ótimo; 1,0 = ótimo) e porcentagem de caminhos ótimos. Ambiente:
@@ -537,28 +523,27 @@ Gulosa : f = h,      relaxar = falso      (fica com o primeiro caminho que desco
     <p class="caption">Tabela 4 – Cenário 1: dungeons de 20×20 a 160×160, 15% de lama</p>
     <!--TABLE:s1-->
     <p>
-      O número de nós expandidos cresce com a área para todos os algoritmos, mas em ritmos diferentes: de 20×20 para
-      160×160 (64× mais células), o Dijkstra passa de 74 para 7.608 nós (≈103×), o A* de 31 para 2.781 (≈90×) e a Gulosa
-      de 20 para 513 (≈26×). No maior mapa, o A* expande 2,7× menos nós que o Dijkstra e a Gulosa 5,4× menos que o A*,
-      com tempos proporcionais. Em compensação, a qualidade da Gulosa <b>piora com o tamanho</b>: a razão média vai de
+      O número de nós expandidos cresce com a área para os dois algoritmos, mas em ritmos diferentes: de 20×20 para
+      160×160 (64× mais células), o A* passa de 31 para 2.781 nós (≈90×) e a Gulosa de 20 para 513 (≈26×). No maior
+      mapa, a Gulosa expande 5,4× menos nós que o A*, e o tempo acompanha (0,21 ms contra 1,03 ms). Em compensação, a qualidade da Gulosa <b>piora com o tamanho</b>: a razão média vai de
       1,12 para 1,40 e os caminhos ótimos caem de 55% para 0%, porque mapas maiores oferecem mais rotas alternativas e
       mais chances de a busca se comprometer cedo com uma rota ruim. O pior caso observado chegou a 3,19× o custo ótimo.
-      A* e Dijkstra foram ótimos em 100% das 2.000 consultas, como garantem a teoria e os testes.
     </p>
 
     <h3>3.3 Cenário 2 – Heurísticas</h3>
-    <!--CHARTS:s2:meanExpanded,meanTimeMs,meanRatio-->
+    <!--CHARTS:s2:meanExpanded,meanRatio-->
     <p class="caption">Tabela 5 – Cenário 2: mapa 80×80, 15% de lama</p>
     <!--TABLE:s2-->
     <p>
-      Quanto mais informada a heurística, menos nós o A* expande, sem perder otimalidade: 1.766 com <i>h</i> = 0, 947
-      com a Euclidiana e 687 com a Manhattan. Como a Manhattan domina a Euclidiana, ela expande 27% menos nós para o
-      mesmo custo, o que mostra por que se deve escolher a heurística admissível mais "apertada". O A* ponderado (w = 2)
-      expande 324 nós (2,1× menos que o A*) com custo médio apenas 6,3% acima do ótimo e pior caso de 1,37, bem dentro
-      do limite teórico de 2. A Gulosa expande menos que todos (225), mas paga 32,5% a mais de custo em média e só
-      acerta o ótimo em 3% das consultas. Um detalhe de memória: o Dijkstra tem a <i>menor</i> lista aberta máxima
-      (51) apesar de expandir mais, pois sua frente de onda avança de forma uniforme pelos corredores; a Gulosa tem a
-      maior (77), porque, guiada só por <i>h</i>, abre ramos em várias salas sem concluí-los.
+      No A*, a heurística muda só o esforço: com a Euclidiana ele expande 947 nós e com a Manhattan 687 (27% menos),
+      os dois com custo ótimo. Como a Manhattan domina a Euclidiana (é sempre maior ou igual e continua admissível),
+      ela descarta mais nós sem perder a otimalidade, o que mostra por que se deve escolher a heurística admissível mais
+      "apertada". Na Gulosa, a heurística muda o próprio caminho, mas nenhuma das duas garante qualidade: com a
+      Euclidiana ela expande 195 nós e fica 29,2% acima do ótimo, com a Manhattan 225 nós e 32,5%, e as duas acertam o
+      ótimo em só 3% das consultas (pior caso de 3,6×). A diferença entre as heurísticas é pequena perto da diferença
+      entre os algoritmos: o que separa a Gulosa do A* é ignorar <i>g</i>(<i>n</i>). Um detalhe de memória: a Gulosa tem
+      as maiores listas abertas (77 e 78 nós) apesar de expandir menos, porque, guiada só por <i>h</i>, abre ramos em
+      várias salas sem concluí-los.
     </p>
 
     <h3>3.4 Cenário 3 – Densidade de lama</h3>
@@ -572,9 +557,7 @@ Gulosa : f = h,      relaxar = falso      (fica com o primeiro caminho que desco
     </div>
     <p>
       O A*, ao contrário, reage ao terreno: expande de 481 para 978 nós (≈2×), porque com mais lama a Manhattan
-      subestima mais o custo real e se torna menos informada; em troca, mantém 100% de caminhos ótimos. O A* ponderado
-      chega a <i>melhorar</i> com mais lama (razão 1,069 → 1,032): quando o custo médio do passo se aproxima de 2 a 3,
-      a heurística 2×Manhattan deixa de superestimar tanto.
+      subestima mais o custo real e se torna menos informada; em troca, continua devolvendo o caminho ótimo.
     </p>
 
     <h3>3.5 Resultados dentro do jogo</h3>
@@ -590,16 +573,17 @@ Gulosa : f = h,      relaxar = falso      (fica com o primeiro caminho que desco
         </tr>
       </thead>
       <tbody>
-        <tr><td>Dijkstra (h = 0)</td><td class="num">52</td><td class="num">52</td><td class="num">625</td><td class="num">27</td></tr>
-        <tr><td>A* (Euclidiana)</td><td class="num">52</td><td class="num">52</td><td class="num">520</td><td class="num">89</td></tr>
         <tr><td>A* (Manhattan)</td><td class="num">52</td><td class="num">52</td><td class="num">273</td><td class="num">80</td></tr>
-        <tr><td>A* ponderado (2×Manhattan)</td><td class="num">54</td><td class="num">54</td><td class="num">248</td><td class="num">92</td></tr>
+        <tr><td>A* (Euclidiana)</td><td class="num">52</td><td class="num">52</td><td class="num">520</td><td class="num">89</td></tr>
         <tr><td>Gulosa (Manhattan)</td><td class="num">68</td><td class="num">54</td><td class="num">135</td><td class="num">90</td></tr>
+        <tr><td>Gulosa (Euclidiana)</td><td class="num">76</td><td class="num">62</td><td class="num">110</td><td class="num">81</td></tr>
       </tbody>
     </table>
     <p>
       No mapa de demonstração, a Gulosa expande metade dos nós do A*, mas escolhe um caminho de custo 68 contra 52: ela
-      atravessa 7 células de lama, o que custa ao Zumbi cerca de 16 turnos a mais que o caminho ótimo. Um teste
+      atravessa 7 células de lama, o que custa ao Zumbi cerca de 16 turnos a mais que o caminho ótimo. Com a
+      Euclidiana ela fica ainda pior aqui (custo 76), embora seja um pouco melhor na média do Cenário 2: na Gulosa, a
+      heurística muda o caminho, mas não há garantia de qualidade. Um teste
       automatizado garante que essa cena se repete na apresentação. Dentro do jogo, cada busca leva da ordem de
       décimos de milissegundo no navegador (0,2 ms na Figura 1); mesmo com 8 monstros replanejando a cada turno, o custo
       da IA fica em poucos milissegundos por turno, imperceptível para o jogador.
@@ -608,12 +592,11 @@ Gulosa : f = h,      relaxar = falso      (fica com o primeiro caminho que desco
     <!-- ═══════════════ 4. CONCLUSÃO ═══════════════ -->
     <h2>4 Conclusão</h2>
     <p>
-      Os experimentos confirmaram a teoria. O A* com heurística consistente foi ótimo em todas as consultas, e a
-      qualidade da heurística determina quantos nós ele expande. A Gulosa expandiu até 5,4 vezes menos nós que o A* (3× no mapa
+      Os experimentos confirmaram a teoria. O A* com heurística consistente sempre encontrou o caminho de custo mínimo
+      (conferido contra uma busca exaustiva nos testes), e a qualidade da heurística determina quantos nós ele expande. A Gulosa expandiu até 5,4 vezes menos nós que o A* (3× no mapa
       80×80), mas devolveu caminhos em média 12% a 40% mais caros (até 3,6× no pior caso), e é insensível ao custo do terreno. A escolha depende
       do objetivo de design: para inimigos "burros", baratos e numerosos, a Gulosa é adequada e até desejável, pois o
-      jogador pode explorar seus erros; para inimigos competentes, o A*; e o A* ponderado oferece um meio-termo ajustável
-      pelo peso <i>w</i>.
+      jogador pode explorar seus erros; para inimigos competentes, o A*.
     </p>
     <p><b>Limitações.</b></p>
     <ul>
@@ -627,8 +610,12 @@ Gulosa : f = h,      relaxar = falso      (fica com o primeiro caminho que desco
     <p><b>Possíveis melhorias.</b></p>
     <ul>
       <li>
-        Busca incremental (D* Lite, LPA*), ou um único mapa de distâncias calculado por Dijkstra a partir do jogador e
-        compartilhado por todos os monstros: uma busca por turno em vez de uma por monstro.
+        Busca incremental (D* Lite, LPA*), ou um único mapa de distâncias calculado a partir do jogador e compartilhado
+        por todos os monstros: uma busca por turno em vez de uma por monstro.
+      </li>
+      <li>
+        A* ponderado (<i>f</i> = <i>g</i> + <i>w</i>·<i>h</i>, com <i>w</i> &gt; 1) como meio-termo ajustável entre a
+        Gulosa e o A*: menos nós, com custo no máximo <i>w</i> vezes o ótimo (POHL, 1970).
       </li>
       <li><i>Jump Point Search</i> para trechos de custo uniforme.</li>
       <li>Movimento em 8 direções com heurística octile.</li>
@@ -637,10 +624,6 @@ Gulosa : f = h,      relaxar = falso      (fica com o primeiro caminho que desco
     </ul>
 
     <h2>Referências</h2>
-    <p style="text-align: left">
-      DIJKSTRA, E. W. A note on two problems in connexion with graphs. <b>Numerische Mathematik</b>, v. 1, p. 269–271,
-      1959.
-    </p>
     <p style="text-align: left">
       HART, P. E.; NILSSON, N. J.; RAPHAEL, B. A formal basis for the heuristic determination of minimum cost paths.
       <b>IEEE Transactions on Systems Science and Cybernetics</b>, v. 4, n. 2, p. 100–107, 1968.

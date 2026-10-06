@@ -12,8 +12,8 @@ import { ALGOS, type AlgoId, type Scenario } from './scenarios';
 export type Theme = 'light' | 'dark';
 
 const SERIES: Record<Theme, Record<AlgoId, string>> = {
-  light: { astar: '#2a78d6', greedy: '#eb6834', dijkstra: '#1baf7a', 'astar-w2': '#eda100', 'astar-euclid': '#e87ba4' },
-  dark: { astar: '#3987e5', greedy: '#d95926', dijkstra: '#199e70', 'astar-w2': '#c98500', 'astar-euclid': '#d55181' },
+  light: { astar: '#2a78d6', greedy: '#eb6834', 'astar-euclid': '#1baf7a', 'greedy-euclid': '#eda100' },
+  dark: { astar: '#3987e5', greedy: '#d95926', 'astar-euclid': '#199e70', 'greedy-euclid': '#c98500' },
 };
 
 const INK: Record<Theme, { text: string; muted: string; grid: string; surface: string }> = {
@@ -84,13 +84,17 @@ function barChart(scenario: Scenario, rows: readonly Row[], metric: Metric, them
   const info = METRICS[metric];
   const algos = scenario.algos;
   const colors = algos.map((algo) => SERIES[theme][algo]);
+  const options = baseOptions(theme, '', info.axis, false, false, true);
+  // Todos os rótulos visíveis e retos (um por barra, uma palavra por linha).
+  Object.assign(options.scales.x.ticks, { autoSkip: false, maxRotation: 0 });
   return {
     id: `${scenario.id}-${metric}`,
     title: info.title,
     config: {
       type: 'bar',
       data: {
-        labels: algos.map((a) => ALGOS[a].short),
+        // Uma palavra por linha ("Gulosa" / "Eucl."), para o rótulo não ficar inclinado.
+        labels: algos.map((a) => ALGOS[a].short.split(' ')),
         datasets: [
           {
             label: info.title,
@@ -104,7 +108,7 @@ function barChart(scenario: Scenario, rows: readonly Row[], metric: Metric, them
           },
         ],
       },
-      options: baseOptions(theme, '', info.axis, false, false, true),
+      options,
     },
   };
 }
